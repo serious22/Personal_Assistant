@@ -1,0 +1,322 @@
+{
+  "name": "Personal_Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "par0dy-b00mer-4rty-7aa",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "54738b94-a263-482f-bf8c-5833c52d2ec5",
+      "name": "Webhook",
+      "webhookId": "5056d2ce-3699-4d24-b5c2-73fe97013bdc"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=#### 3. User Request & Execution Plan\n\nYour goal is to analyze the user's request details provided below and execute the correct sequence of actions using your available tools.\n\n**Here are the details from the user's voice command. Some fields may be 'Not Provided'. Your task is to determine the user's primary goal based on the fields that have actual values.**\n\n* **Current Date & Time:** `{{ $now.toISO() }}` (Use this for all time-based calculations).\n\n---\n**INPUTS FOR ANALYSIS:**\n\n**Email Task:**\n* Recipient Name: `{{ $json.body.recipient_name || 'Not Provided' }}`\n* Email Context: `{{ $json.body.email_context || 'Not Provided' }}`\n\n**Calendar Creation Task:**\n* Event Details (Title & Attendees): `{{ $json.body.event_details || 'Not Provided' }}`\n* Event Timing (Start & Duration): `{{ $json.body.event_timing || 'Not Provided' }}`\n\n**Calendar Availability Check Task:**\n* Check Start Time: `{{ $json.body.start_time || 'Not Provided' }}`\n\n---\n**YOUR EXECUTION LOGIC:**\n\n1.  **Identify the Goal:** First, look at the inputs above. If `Email Context` is provided, your goal is to send an email. If `Event Details` is provided, your goal is to create an event. If only `Check Start Time` is provided, your goal is to check availability.\n\n2.  **Formulate a Plan:** Based on the identified goal, create a mental step-by-step plan using your tools (`contactData`, `checkAvailability`, `createCalendarEvent`, `deleteCalendarEvent`, `sendEmail`).\n\n3.  **Execute:** Carry out your plan. For example, to create an event, you may need to first use `checkAvailability` to find an open slot before using the `createCalendarEvent` tool. To send an email, you must first use `contactData` to find the email address. Execute all necessary steps to complete the user's request.",
+        "options": {
+          "systemMessage": "=#### 1. Agent Overview\n\nYou are a world-class AI personal assistant. Your primary responsibilities are to manage the user's professional life by sending emails and scheduling calendar events. You must operate by thinking step-by-step to complete your goal.\n\n#### 2. Available Tools\n\nYou have the following tools. You must call them with the exact parameter names listed.\n\n**Tool: `contactData`**\n* **Description:** Use this tool to find a contact's email address by their name.\n* **Input Parameter:** `name` (string)\n* **Output:** A JSON object containing the contact's `Email`.\n\n**Tool: `sendEmail`**\n* **Description:** Use this tool ONLY as the final step to send a fully prepared email.\n* **Input Parameters:**\n    * `recipient_email` (string)\n    * `subject` (string)\n    * `body` (string)\n\n**Tool: `checkAvailability`**\n* **Description:** Checks if a specific time slot on the calendar is free or busy.\n* **Input Parameters:**\n    * `start_time` (string): The beginning of the time slot to check, in full ISO 8601 format (e.g., \"2025-08-05T14:00:00\").\n    * `end_time` (string): The end of the time slot to check, in full ISO 8601 format (e.g., \"2025-08-05T15:00:00\").\n* **Output:** A list of busy time slots. If the list is empty, the user is free during that time.\n\n**Tool: `createEvent`**\n* **Description:** Creates a new event on the user's calendar. Should only be used after confirming availability.\n* **Input Parameters:**\n    * `title` (string): The title or name of the event (e.g., \"Meeting with John\").\n    * `start_time` (string): The beginning of the event, in full ISO 8601 format.\n    * `end_time` (string): The end of the event, in full ISO 8601 format. \n    * `attendees` (string, optional): A comma-separated list of guest email addresses to invite.\n* **Output:** A confirmation that the event was created.\n\n#### 3. Core Mission and Playbooks\n\nYour core mission is to analyze the user's request, determine their primary goal, and then follow the correct \"Playbook\" below to execute the task.\n\n**User Request Details:**\n* **Email Context:** `{{ $json.body.email_context || \"Not Provided\" }}`\n* **Recipient Name:** `{{ $json.body.recipient_name || \"Not Provided\" }}`\n* **Calendar Event Details:** `{{ $json.body.event_details || \"Not Provided\" }}`\n* **Calendar Event Timing:** `{{ $json.body.event_timing || \"Not Provided\" }}`\n---\n**Playbook A: Sending an Email**\n\nFollow this plan if the goal is to send an email.\n\n1.  **Find Email Address:** Use the `contactData` tool to find the email address for the `Recipient Name`.\n2.  **Draft Content:** Based on the `Email Context`, generate a professional `subject` and `body`. The body **must** end with the signature on new lines:\n    ```\n    Regards,\n    Siddhaant\n    ```\n3.  **Send Email:** Call the `sendEmail` tool with the `recipient_email`, `subject`, and `body`. This is your final action.\n\n---\n**Playbook B: Creating a Calendar Event**\n\nFollow this plan if the goal is to create, book, or schedule an event.\n\n1.  **Gather & Calculate Details:** Analyze the `Calendar Event Details` and `Calendar Event Timing` to understand the event's title, its `start_time`, and any `attendee_name`(s). To determine the `end_time`: if the user specifies a duration or an end time, use that. **If they only provide a `start_time`, you must automatically calculate the `end_time` by adding 30 minutes to the `start_time`.**\n\n2.  **Find Attendee Emails (Crucial Step):** If there are any attendee names, you **must** use the `contactData` tool to look up the email address for each person. Store these emails for the final step.\n\n3.  **Check Availability (Recommended):** Before creating the event, use the `checkAvailability` tool for the calculated time slot to ensure it is free. If it's busy, inform the user and suggest an alternative time.\n\n4.  **Create Event:** Once the time is confirmed, call the `createEvent` tool. Provide it with the `title`, `start_time`, the `end_time` you determined, and the comma-separated list of attendee **emails** you found in Step 2. This is your final action."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7dc53d1e-1a53-4c7e-a3e8-63f3bc5bb476",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -48,
+        288
+      ],
+      "id": "6794b942-c83c-4f7e-8ecb-2c48db380370",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "I4F9Y4mZDlRZWxg7",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        576,
+        0
+      ],
+      "id": "afd6fdff-cc84-485e-8310-7510affda17d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to send an email on the user's behalf. It requires the recipient's email address, a subject line, and the email body. Remember, the subject and body must be generated by the AI before this tool is called.",
+        "sendTo": "={{ $fromAI('To') }}",
+        "subject": "={{ $fromAI('Subject') }}",
+        "message": "={{ $fromAI('Message') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        240
+      ],
+      "id": "cf9bbfb4-8cfa-4848-808c-cf63d4cd0628",
+      "name": "sendEmail",
+      "webhookId": "f2b1714a-a2b5-49db-ad0b-51fbb6564d33",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Qb3Hbrxw7bKisISO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to find the email address of a contact by their name. You will be provided with the person's name to look up. The tool should return the email for that contact.",
+        "documentId": {
+          "__rl": true,
+          "value": "16bwRvIYPprDwd-yg8UbZ2ASM2DLsYOUBAJRt3GDSdu8",
+          "mode": "list",
+          "cachedResultName": "Contact_list_n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16bwRvIYPprDwd-yg8UbZ2ASM2DLsYOUBAJRt3GDSdu8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16bwRvIYPprDwd-yg8UbZ2ASM2DLsYOUBAJRt3GDSdu8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        480,
+        240
+      ],
+      "id": "cb2ab1b7-3002-4235-8a47-ff96f063c332",
+      "name": "contactData",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BOi2pQMHG4dkQAuB",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to check if a specific time slot on the user's calendar is free or busy. You must provide a full start time and end time (including date). The tool will return a list of busy slots. If the list is empty, the time slot is free.",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "siddhaantpahuja@gmail.com",
+          "mode": "list",
+          "cachedResultName": "siddhaantpahuja@gmail.com"
+        },
+        "limit": 5,
+        "timeMin": "={{ $fromAI('start_time')}}",
+        "timeMax": "={{ $fromAI('end_time')}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        192
+      ],
+      "id": "de02ca76-4b3c-40d8-ac4a-4261ff39e4a0",
+      "name": "checkAvailability",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "yWhsTZ62J8nQufqn",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool ONLY AFTER you have confirmed that a time slot is free. This tool creates a new event on the user's calendar. You must provide the event's title, a full start time, and a full end time.",
+        "calendar": {
+          "__rl": true,
+          "value": "siddhaantpahuja@gmail.com",
+          "mode": "list",
+          "cachedResultName": "siddhaantpahuja@gmail.com"
+        },
+        "start": "={{ $fromAI(\"startTime\") }}",
+        "end": "={{ $fromAI(\"endTime\") }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $fromAI(\"attendees\") }}"
+          ],
+          "summary": "={{ $fromAI(\"summary\") }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        272
+      ],
+      "id": "630982f4-e48b-46fe-97cd-ddf14779cf5b",
+      "name": "createEvent",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "yWhsTZ62J8nQufqn",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "__CUSTOM_API_CALL__"
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        272
+      ],
+      "id": "f5ef2179-d6af-4ac9-a310-4e7372c44d01",
+      "name": "UpdateCalender",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "yWhsTZ62J8nQufqn",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sendEmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contactData": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "checkAvailability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "createEvent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdateCalender": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "351b79fa-18a2-4783-92a9-5ea70c8f6e9b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1a01b00a8410c4e0c80eb033ac65d967785e8a6acc8f72ae23d11df1c5d9e9d7"
+  },
+  "id": "IKoaaYGDE3HgVKvc",
+  "tags": []
+}
